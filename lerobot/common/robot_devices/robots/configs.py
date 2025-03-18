@@ -434,16 +434,14 @@ class MossRobotConfig(ManipulatorRobotConfig):
 @RobotConfig.register_subclass("so100")
 @dataclass
 class So100RobotConfig(ManipulatorRobotConfig):
-    calibration_dir: str = ".cache/calibration/so100"
+    calibration_dir: str = "calibration/so100"
     # `max_relative_target` limits the magnitude of the relative positional target vector for safety purposes.
-    # Set this to a positive scalar to have the same value for all motors, or a list that is the same length as
-    # the number of motors in your follower arms.
-    max_relative_target: int | None = None
+    # Set this to a positive scalar to have the same value for all motors, or a list that is the same length as the number of motors in your follower arms. max_relative_target: int | None = None
 
     leader_arms: dict[str, MotorsBusConfig] = field(
         default_factory=lambda: {
             "main": FeetechMotorsBusConfig(
-                port="/dev/tty.usbmodem58760431091",
+                port="/dev/ttyACM1",
                 motors={
                     # name: (index, model)
                     "shoulder_pan": [1, "sts3215"],
@@ -460,7 +458,7 @@ class So100RobotConfig(ManipulatorRobotConfig):
     follower_arms: dict[str, MotorsBusConfig] = field(
         default_factory=lambda: {
             "main": FeetechMotorsBusConfig(
-                port="/dev/tty.usbmodem585A0076891",
+                port="/dev/ttyACM0",
                 motors={
                     # name: (index, model)
                     "shoulder_pan": [1, "sts3215"],
@@ -476,17 +474,19 @@ class So100RobotConfig(ManipulatorRobotConfig):
 
     cameras: dict[str, CameraConfig] = field(
         default_factory=lambda: {
-            "laptop": OpenCVCameraConfig(
-                camera_index=0,
+            "wrist_camera": OpenCVCameraConfig(
+                camera_index=10,
                 fps=30,
                 width=640,
                 height=480,
+                color_mode="rgb",
             ),
-            "phone": OpenCVCameraConfig(
-                camera_index=1,
+            "static_camera": OpenCVCameraConfig(
+                camera_index=4,
                 fps=30,
                 width=640,
                 height=480,
+                color_mode="rgb",
             ),
         }
     )
