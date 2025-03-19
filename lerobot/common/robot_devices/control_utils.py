@@ -267,8 +267,12 @@ def control_loop(
         if display_cameras and not is_headless():
             image_keys = [key for key in observation if "image" in key]
             for key in image_keys:
-                cv2.imshow(key, cv2.cvtColor(observation[key].numpy(), cv2.COLOR_RGB2BGR))
-            cv2.waitKey(1)
+                img = observation[key].numpy()
+                print(img.shape, img.dtype)  # Debugging output
+                cv2.namedWindow(key, cv2.WINDOW_NORMAL)  # Allow window resizing
+                cv2.imshow(key, cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+                # cv2.moveWindow(key, 100, 100)
+            cv2.waitKey(0)
 
         if fps is not None:
             dt_s = time.perf_counter() - start_loop_t
