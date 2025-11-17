@@ -31,6 +31,7 @@ from lerobot.optim.optimizers import OptimizerConfig
 from lerobot.optim.schedulers import LRSchedulerConfig
 from lerobot.utils.hub import HubMixin
 from lerobot.utils.utils import auto_select_torch_device, is_amp_available, is_torch_device_available
+from lerobot.constants import OBS_STATE
 
 T = TypeVar("T", bound="PreTrainedConfig")
 
@@ -119,10 +120,7 @@ class PreTrainedConfig(draccus.ChoiceRegistry, HubMixin, abc.ABC):
 
     @property
     def robot_state_feature(self) -> PolicyFeature | None:
-        for _, ft in self.input_features.items():
-            if ft.type is FeatureType.STATE:
-                return ft
-        return None
+        return self.input_features.get(OBS_STATE)
 
     @property
     def env_state_feature(self) -> PolicyFeature | None:
