@@ -44,6 +44,7 @@ from lerobot.utils.train_utils import (
     save_checkpoint,
     update_last_checkpoint,
 )
+from lerobot.utils.import_utils import register_third_party_plugins
 from lerobot.utils.utils import (
     format_big_number,
     get_safe_torch_device,
@@ -288,4 +289,5 @@ def train(cfg: TrainPipelineConfig):
 
 if __name__ == "__main__":
     init_logging()
+    register_third_party_plugins()
     train()

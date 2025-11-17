@@ -15,6 +15,7 @@
 # limitations under the License.
 import importlib
 import logging
+import pkgutil
 
 
 def is_package_available(pkg_name: str, return_version: bool = False) -> tuple[bool, str] | bool:
@@ -61,3 +62,29 @@ _torch_available, _torch_version = is_package_available("torch", return_version=
 _gym_xarm_available = is_package_available("gym_xarm")
 _gym_aloha_available = is_package_available("gym_aloha")
 _gym_pusht_available = is_package_available("gym_pusht")
+
+
+def register_third_party_plugins() -> None:
+    """Discover and import third-party lerobot_* plugins so they can register themselves.
+
+    Scans top-level modules on sys.path for packages starting with
+    'lerobot_robot_', 'lerobot_camera_', 'lerobot_teleoperator_' or 'lerobot_policy_' and imports them.
+    This allows external policies and other components to register themselves via decorators
+    (e.g., @PreTrainedConfig.register_subclass) during import.
+    """
+    prefixes = ("lerobot_robot_", "lerobot_camera_", "lerobot_teleoperator_", "lerobot_policy_")
+    imported: list[str] = []
+    failed: list[str] = []
+
+    for module_info in pkgutil.iter_modules():
+        name = module_info.name
+        if name.startswith(prefixes):
+            try:
+                importlib.import_module(name)
+                imported.append(name)
+                logging.info("Imported third-party plugin: %s", name)
+            except Exception:
+                logging.exception("Could not import third-party plugin: %s", name)
+                failed.append(name)
+
+    logging.debug("Third-party plugin import summary: imported=%s failed=%s", imported, failed)

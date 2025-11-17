@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import importlib
 import logging
 
 from torch import nn
@@ -75,7 +76,10 @@ def get_policy_class(name: str) -> PreTrainedPolicy:
 
         return SmolVLAPolicy
     else:
-        raise NotImplementedError(f"Policy with name {name} is not implemented.")
+        try:
+            return _get_policy_cls_from_policy_name(name=name)
+        except Exception as e:
+            raise ValueError(f"Policy type '{name}' is not available.") from e
 
 
 def make_policy_config(policy_type: str, **kwargs) -> PreTrainedConfig:
@@ -98,7 +102,11 @@ def make_policy_config(policy_type: str, **kwargs) -> PreTrainedConfig:
     elif policy_type == "reward_classifier":
         return RewardClassifierConfig(**kwargs)
     else:
-        raise ValueError(f"Policy type '{policy_type}' is not available.")
+        try:
+            config_cls = PreTrainedConfig.get_choice_class(policy_type)
+            return config_cls(**kwargs)
+        except Exception as e:
+            raise ValueError(f"Policy type '{policy_type}' is not available.") from e
 
 
 def make_policy(
@@ -176,3 +184,42 @@ def make_policy(
     # policy = torch.compile(policy, mode="reduce-overhead")
 
     return policy
+
+
+def _get_policy_cls_from_policy_name(name: str) -> type[PreTrainedPolicy]:
+    """Get policy class from its registered name using dynamic imports.
+
+    This is used as a helper function to import policies from 3rd party lerobot plugins.
+
+    Args:
+        name: The name of the policy.
+
+    Returns:
+        The policy class corresponding to the given name.
+
+    Raises:
+        ValueError: If the policy name is not registered or does not follow naming conventions.
+        ImportError: If the policy module cannot be imported.
+    """
+    if name not in PreTrainedConfig.get_known_choices():
+        raise ValueError(
+            f"Unknown policy name '{name}'. Available policies: {PreTrainedConfig.get_known_choices()}"
+        )
+
+    config_cls = PreTrainedConfig.get_choice_class(name)
+    config_cls_name = config_cls.__name__
+
+    model_name = config_cls_name.removesuffix("Config")  # e.g., DiffusionConfig -> Diffusion
+    if model_name == config_cls_name:
+        raise ValueError(
+            f"The config class name '{config_cls_name}' does not follow the expected naming convention. "
+            f"Make sure it ends with 'Config'!"
+        )
+    cls_name = model_name + "Policy"  # e.g., DiffusionConfig -> DiffusionPolicy
+    module_path = config_cls.__module__.replace(
+        "configuration_", "modeling_"
+    )  # e.g., configuration_diffusion -> modeling_diffusion
+
+    module = importlib.import_module(module_path)
+    policy_cls = getattr(module, cls_name)
+    return policy_cls
